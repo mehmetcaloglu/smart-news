@@ -2,7 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   // These native modules must run server-side only — don't bundle them with webpack
-  serverExternalPackages: ['better-sqlite3', '@xenova/transformers', 'node-cron'],
+  serverExternalPackages: ['better-sqlite3', 'node-cron'],
+
   images: {
     remotePatterns: [
       {

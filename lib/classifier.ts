@@ -1,69 +1,72 @@
-// @xenova/transformers is loaded lazily (dynamic import) so it doesn't
-// run at Next.js build time during "Collecting page data" phase.
-let classifier: any = null;
-let currentModel = 'kaixkhazaki/turkish-sentiment';
+export async function analyzeSentiment(text: string): Promise<{
+  label: 'olumlu' | 'olumsuz' | 'nötr';
+  score: number;
+  raw_label?: string;
+}> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn('[NLP] GEMINI_API_KEY is not set. Defaulting to "nötr".');
+    return { label: 'nötr', score: 0.5 };
+  }
 
-export async function getClassifier() {
-  if (classifier) return classifier;
+  const truncatedText = text.substring(0, 1000);
+  const prompt = `Aşağıdaki haber başlığı ve özetini analiz et ve Türkçe duygu etiketini (olumlu, olumsuz, nötr) belirle.
+Ayrıca bu analizin güven skorunu (0.0 ile 1.0 arasında) döndür.
 
-  // Dynamic import — only loads onnxruntime at runtime, not build time
-  const { pipeline } = await import('@xenova/transformers');
+Haber:
+${truncatedText}`;
 
   try {
-    console.log(`[NLP] Loading sentiment model: ${currentModel}`);
-    classifier = await pipeline('sentiment-analysis', currentModel);
-    return classifier;
-  } catch (error) {
-    console.log(`[NLP] Failed to load ${currentModel}. Trying alternative...`);
-    currentModel = 'savasy/bert-base-turkish-sentiment-cased';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              sentiment: {
+                type: 'STRING',
+                enum: ['olumlu', 'olumsuz', 'nötr'],
+              },
+              score: {
+                type: 'NUMBER',
+                description: 'Confidence score between 0.0 and 1.0',
+              },
+            },
+            required: ['sentiment', 'score'],
+          },
+        },
+      }),
+    });
 
-    try {
-      classifier = await pipeline('sentiment-analysis', currentModel);
-      return classifier;
-    } catch (err2) {
-      console.log(`[NLP] Failed to load ${currentModel}. Falling back to multilingual model.`);
-      currentModel = 'Xenova/bert-base-multilingual-uncased-sentiment';
-      classifier = await pipeline('sentiment-analysis', currentModel);
-      return classifier;
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini API error: ${response.status} - ${errText}`);
     }
+
+    const data = await response.json();
+    const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!jsonText) {
+      throw new Error('Empty response from Gemini API');
+    }
+
+    const result = JSON.parse(jsonText);
+    const label = result.sentiment as 'olumlu' | 'olumsuz' | 'nötr';
+    const score = typeof result.score === 'number' ? result.score : 0.5;
+
+    return { label, score };
+  } catch (error) {
+    console.error('[NLP] Gemini API sentiment analysis failed:', error);
+    return { label: 'nötr', score: 0.5 };
   }
-}
-
-export async function analyzeSentiment(text: string) {
-  const model = await getClassifier();
-
-  const truncatedText = text.substring(0, 512);
-  const result = await model(truncatedText);
-  const prediction = Array.isArray(result) ? result[0] : result;
-
-  const labelRaw = prediction.label.toLowerCase();
-  let label = 'nötr';
-
-  if (
-    labelRaw.includes('positive') ||
-    labelRaw === 'label_1' ||
-    labelRaw.includes('5 stars') ||
-    labelRaw.includes('4 stars')
-  ) {
-    label = 'olumlu';
-  } else if (
-    labelRaw.includes('negative') ||
-    labelRaw === 'label_0' ||
-    labelRaw.includes('1 star') ||
-    labelRaw.includes('2 stars')
-  ) {
-    label = 'olumsuz';
-  } else if (
-    labelRaw.includes('neutral') ||
-    labelRaw === 'label_2' ||
-    labelRaw.includes('3 stars')
-  ) {
-    label = 'nötr';
-  }
-
-  return {
-    label: label as 'olumlu' | 'olumsuz' | 'nötr',
-    score: prediction.score,
-    raw_label: prediction.label,
-  };
 }
