@@ -340,7 +340,6 @@ export default function Home() {
                   >
                       {item.image && (
                       <div className="w-full h-48 bg-slate-100 shrink-0 overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.image}
                           alt={item.title}
