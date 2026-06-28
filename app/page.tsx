@@ -175,19 +175,19 @@ export default function Home() {
   return (
     <div className="h-screen w-full flex flex-col bg-[color:var(--color-bg-soft)] text-[color:var(--color-text-main)] font-serif overflow-hidden">
       {/* Header */}
-      <header className="h-[70px] border-b border-[color:var(--color-border)] bg-[color:var(--color-card-bg)] flex items-center justify-between px-6 md:px-10 shrink-0 shadow-sm z-10 relative">
+      <header className="min-h-[70px] py-3 border-b border-[color:var(--color-border)] bg-[color:var(--color-card-bg)] flex items-center justify-between px-4 md:px-10 shrink-0 shadow-sm z-10 relative">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[color:var(--color-accent)] rounded-xl flex items-center justify-center shadow-inner">
+          <div className="w-10 h-10 bg-[color:var(--color-accent)] rounded-xl flex items-center justify-center shadow-inner shrink-0">
             <span className="text-white font-bold font-sans text-xl">D</span>
           </div>
           <div>
-            <h1 className="text-[20px] font-bold leading-tight tracking-tight">DuyguHaber</h1>
-            <span className="text-[11px] text-[color:var(--color-text-muted)] font-mono tracking-wider uppercase">AI Sentiment Analyzer</span>
+            <h1 className="text-[18px] md:text-[20px] font-bold leading-tight tracking-tight">DuyguHaber</h1>
+            <span className="hidden sm:inline-block text-[11px] text-[color:var(--color-text-muted)] font-mono tracking-wider uppercase">AI Sentiment Analyzer</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {/* NLP badge */}
-          <div className="hidden md:flex items-center gap-2 text-[12px] text-emerald-700 font-mono border border-emerald-200 bg-emerald-50 px-3 py-1.5 rounded-full">
+          <div className="hidden lg:flex items-center gap-2 text-[12px] text-emerald-700 font-mono border border-emerald-200 bg-emerald-50 px-3 py-1.5 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             HuggingFace NLP Aktif
           </div>
@@ -198,18 +198,27 @@ export default function Home() {
             className={fetchButtonClass()}
             title="RSS kaynaklarından yeni haber çek"
           >
-            {fetchButtonLabel()}
+            {fetchStatus === 'fetching' ? (
+              <><RefreshCw className="w-4 h-4 animate-spin" /><span className="text-xs md:text-sm">Çekiliyor...</span></>
+            ) : fetchStatus === 'success' ? (
+              <><CheckCircle className="w-4 h-4" /><span className="text-xs md:text-sm">{lastFetchResult?.added ?? 0} haber</span></>
+            ) : fetchStatus === 'error' ? (
+              <><AlertCircle className="w-4 h-4" /><span className="text-xs md:text-sm">Hata</span></>
+            ) : (
+              <><Rss className="w-4 h-4" /><span className="text-xs md:text-sm"><span className="hidden md:inline">Yeni Haberleri </span>Çek</span></>
+            )}
           </button>
           {/* Sources settings */}
           <button
             onClick={() => setShowSourcesModal(true)}
-            className="flex items-center justify-center p-2.5 rounded-lg bg-[color:var(--color-bg-soft)] border border-[color:var(--color-border)] text-[color:var(--color-text-muted)] hover:text-[color:var(--color-accent)] hover:bg-white transition-all shadow-sm"
+            className="flex items-center justify-center p-2.5 rounded-lg bg-[color:var(--color-bg-soft)] border border-[color:var(--color-border)] text-[color:var(--color-text-muted)] hover:text-[color:var(--color-accent)] hover:bg-white transition-all shadow-sm shrink-0"
             title="Kaynakları Düzenle"
           >
             <Settings className="w-4 h-4" />
           </button>
         </div>
       </header>
+
 
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
