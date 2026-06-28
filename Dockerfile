@@ -1,8 +1,8 @@
 # ---- Build Stage ----
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 # Native module deps (better-sqlite3 needs python + build tools)
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY package*.json ./
@@ -12,9 +12,10 @@ COPY . .
 RUN npm run build
 
 # ---- Production Stage ----
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
-RUN apk add --no-cache python3 make g++
+# Runtime native deps
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -25,13 +26,11 @@ ENV PORT=3000
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/config ./config
 
-# Data dir (will be mounted as a volume in production)
+# Data dir — mounted as persistent volume in production
 RUN mkdir -p /app/data
 
-# SQLite data volume
 VOLUME ["/app/data"]
 
 EXPOSE 3000

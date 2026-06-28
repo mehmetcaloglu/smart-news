@@ -101,11 +101,10 @@ export default function Home() {
 
   useEffect(() => {
     if (showSourcesModal) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadSourcesData();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSourcesModal]);
+
 
   const handleAddSource = async () => {
     if (!newSourceUrl.trim() || !newSourceUrl.startsWith('http')) {
